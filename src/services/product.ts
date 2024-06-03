@@ -44,10 +44,109 @@ export const getProduct = async (req: Request, res: Response) => {
   }
 };
 
-export const updateProduct = async (req: Request, res: Response) => {}
+export const updateProduct = async (req: Request, res: Response) => {
+  let { id, category, price, quantity, name, is_deleted } = req.body;
 
-export const deleteProduct = async (req: Request, res: Response) => {}
+  id = Number(id);
+  price = Number(price);
+  quantity = Number(quantity);
+  is_deleted = Boolean(is_deleted);
 
-export const getAllProduct = async (req: Request, res: Response) => {}
+  if(id <= 0 || price < 0 || quantity < 0 || category) {
+    return res.status(400).json({
+      error: "Invalid value(s) provided"
+    }).end();
+  }
+  try {
+    await models.db.run(
+      `UPDATE product 
+        SET 
+          price = $2,
+          quantity = $3,
+          category = $4,
+          name = $5,
+          is_deleted = $6
+        WHERE id = $1 `, [id, price, quantity, category, name, is_deleted]);
+      return res
+        .status(200)
+        .json({
+          "message": "Updated product successfully!",
+        })
+        .end();
 
-export const searchProduct = async (req: Request, res: Response) => {}
+  } catch (error) {
+    console.error(error);
+    return res.status(500).end();
+  }
+
+}
+
+export const deleteProduct = async (req: Request, res: Response) => {
+  const id = Number(req.params['id']);
+
+  if(id <= 0) {
+    return res.status(400).json({
+      error: "Invalid product id"
+    }).end();
+  }
+
+  try {
+    await models.db.run(`UPDATE product SET is_deleted = FALSE WHERE id = $1`, [id])
+    return res.status(200).json({
+      message: "Product deleted successfully"
+    }).end();
+  } catch (error) {
+    return res.status(500).end();
+  }
+
+}
+
+export const getAllProduct = async (req: Request, res: Response) => {
+  const tenant_id = 0
+
+  if(tenant_id <= 0) {
+    return res.status(400).json({
+      error: "Invalid tenant id"
+    }).end();
+  }
+  try {
+    const result = models.db.all(`SELECT * FROM product WHERE tenant_id = $1 AND is_deleted = FALSE`, [tenant_id])
+  } catch (error) {
+    
+  }
+}
+
+export const searchProduct = async (req: Request, res: Response) => {
+  let { name, min_price, max_price, category, tenant_id } = req.body;
+
+  tenant_id = Number(tenant_id);
+  min_price = Number(min_price) ? Number(min_price) : 0;
+  max_price = Number(max_price) ? Number(max_price) : Number.MAX_VALUE;
+
+  if(tenant_id <= 0 || !Array.isArray(category)) {
+    return res.status(400).json({
+      error: "Invalid value(s) provided"
+    }).end();
+  }
+
+  const placeholders = category.map(() => '?').join(', ');
+
+  try {
+    const result = models.db.all(
+      `SELECT * FROM product 
+        WHERE id_deleted = FALSE AND 
+          name LIKE ? AND
+          price >= ? AND
+          price <= ? AND
+          tenant_id = ?
+          category IN(${placeholders})`
+      , [name, min_price, max_price, tenant_id, ...category])
+
+      return res.status(200).json({
+        data: result
+      }).end();
+  } catch (error) {
+    return res.status(500).end();
+  }
+
+}
