@@ -8,7 +8,9 @@ router.post("/create-tenant", service.createTenant); // create tenant
 router.get("/get-tenant/:id", service.getTenant); // get tenant info
 
 
-// update tenant info
+// admin routes
+router.post("/admin/create-admin", service.createAdmin);
+router.post("/admin/create-owner", service.createOwner);
 
 // ----product-----
 router.post("/product/add", service.addProduct); // add product
