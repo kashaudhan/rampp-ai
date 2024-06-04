@@ -10,6 +10,12 @@ app.use(express.json());
 
 export let db: Database<sqlite3.Database, sqlite3.Statement>;
 
+/**
+ * Modifications to make
+ * Add (creation_time, order_status) in order
+ * order_status -> 'PLACED', 'DISPATCHED', 'DELIVERED', 'CANCELED'
+ */
+
 export const initDB = async () => {
 
   db = await open({

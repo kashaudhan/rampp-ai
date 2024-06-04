@@ -14,7 +14,7 @@ export const signJwtAndReturnToken = async (user: type.IUser) => {
       },
       process.env.JWT_SECRET_KEY as string,
       {
-        expiresIn: "60d",
+        expiresIn: "30d",
       }
     );
   } catch (err) {

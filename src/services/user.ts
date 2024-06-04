@@ -42,5 +42,33 @@ export const signUp = async (req: Request, res: Response) => {
   }
 };
 
-export const signIn = async (req: Request, res: Response) => {}
-export const updateUser = async (req: Request, res: Response) => {}
+export const signIn = async (req: Request, res: Response) => {
+  // const user_id = req.body
+}
+export const updateUser = async (req: Request, res: Response) => {
+  const user_id = Number(req.params['userId']);
+  let { name, email } = req.body;
+
+  if(user_id <= 0) {
+    res.status(400).json({
+      error: "Invalid user id"
+    });
+  }
+
+  if(name.trim().length <= 0 || !validator.emailValidation(email)) {
+    return res.status(400).json({
+      error: "Invalid email or name provided"
+    }).end();
+  }
+
+  try {
+    await models.db.run(`UPDATE user SET name = $1, email = $2 WHERE id = $3`, [name, email, user_id]);
+
+    return res.status(200).json({
+      message: "User updated successfully"
+    });
+  } catch (error) {
+    return res.status(500).end();
+  }
+
+}
