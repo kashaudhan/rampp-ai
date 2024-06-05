@@ -10,11 +10,6 @@ app.use(express.json());
 
 export let db: Database<sqlite3.Database, sqlite3.Statement>;
 
-/**
- * Modifications to make
- * Add (creation_time, order_status) in order
- * order_status -> 'PLACED', 'DISPATCHED', 'DELIVERED', 'CANCELED'
- */
 
 export const initDB = async () => {
 
@@ -38,6 +33,7 @@ export const initDB = async () => {
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     email TEXT NOT NULL,
     tenant_id INTEGER,
+    password_hash TEXT NOT NULL,
     CONSTRAINT fk_tenant FOREIGN KEY (tenant_id) REFERENCES tenant(id)
   );
 
@@ -74,6 +70,8 @@ export const initDB = async () => {
     order_amount INTEGER NOT NULL,
     address TEXT NOT NULL,
     user_id INTEGER,
+    status TEXT NOT NULL CHECK(status IN ('PLACED', 'DISPATCHED', 'DELIVERED', 'CANCELED')),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES user(id)
   );
 

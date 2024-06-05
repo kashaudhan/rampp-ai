@@ -1,33 +1,41 @@
 import { Request, Response } from "express";
 import * as models from "../models";
 import * as validator from "../utils/validator";
+import bcrypt from "bcryptjs";
+import * as type from "../types"
+import * as auth from "./auth"
 
 
 export const signUp = async (req: Request, res: Response) => {
-  let { name, email, tenant_id } = req.body;
+  let { name, email, tenant_id, password } = req.body;
 
   tenant_id = Number(tenant_id)
 
   if (
-    !validator.emailValidation(email) ||
     !name.trim().length ||
-    tenant_id === 0
+    tenant_id === 0 ||
+    !password.length ||
+    !validator.emailValidation(email) ||
+    !validator.passwordValidation(password)
   ) {
     return res
       .status(400)
       .json({
-        error: "Please provide valid email & name",
+        error: "Invalid value(s) provided",
       })
       .end();
   }
 
   try {
+    const salt = bcrypt.genSaltSync(Number(process.env.ENCRYPTION_SALT));
+    const passwordHash = bcrypt.hashSync(password, salt);
+
     await models.db.run(
       `
-        INSERT INTO user(name, email, tenant_id, user_type)
-        VALUES($1, $2, $3, "CUSTOMER")
+        INSERT INTO user(name, email, tenant_id, user_type, password_hash)
+        VALUES($1, $2, $3, "CUSTOMER", $4)
     `,
-      [name, email, Number(tenant_id)]
+      [name, email, Number(tenant_id), passwordHash]
     );
 
     return res
@@ -43,7 +51,71 @@ export const signUp = async (req: Request, res: Response) => {
 };
 
 export const signIn = async (req: Request, res: Response) => {
-  // const user_id = req.body
+  const { email: emailId = "", password = "" } = req.body;
+
+  if (!emailId.trim() || !password.trim()) {
+    return res
+      .status(403)
+      .json({
+        error: "Email or password not provided",
+      })
+      .end();
+  }
+
+  try {
+    const result = await models.db.get(`SELECT id, email, tenant_id, password_hash, name, user_type from user WHERE email = $1`,[emailId]);
+    if (!result) {
+      return res
+        .status(401)
+        .json({
+          error: "Invalid email provided",
+        })
+        .end();
+    }
+    const isPasswordValid = bcrypt.compareSync(
+      password,
+      result.password_hash
+    );
+
+    if (!isPasswordValid) {
+      return res
+        .status(401)
+        .json({
+          error: "Email or password is invalid",
+        })
+        .end();
+    }
+
+    const token = await auth.signJwtAndReturnToken({ 
+      id: result.id,
+      name: result.name,
+      email: result.email,
+      tenant_id: result.tenant_id,
+      user_type: result.user_type
+    });
+
+    console.log("")
+
+    return res
+      .status(200)
+      .json({
+        name: result.name,
+        email: result.email,
+        user_type: result.user_type,
+        tenant_id: result.tenant_id,
+        token: token,
+      })
+      .end();
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({
+        error: "Something went wrong",
+      })
+      .end();
+  }
+
 }
 export const updateUser = async (req: Request, res: Response) => {
   const user_id = Number(req.params['userId']);
@@ -89,7 +161,7 @@ export const createAdmin = async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await models.db.get(`SELECT EXISTS(SELECT 1 FROM user where email = $1 AND user_type = 'ADMIN')`, [email])
+    const result = await models.db.get(`SELECT EXISTS(SELECT 1 FROM user where email = $1)`, [email])
     if(result.exists) {
       return res.status(409).json({
         error: "User with provided email already exists"
@@ -126,7 +198,7 @@ export const createOwner = async (req: Request, res: Response) => {
   }
 
   try {
-    const result = await models.db.get(`SELECT EXISTS(SELECT 1 FROM user where email = $1 AND user_type = 'ADMIN')`, [email])
+    const result = await models.db.get(`SELECT EXISTS(SELECT 1 FROM user where email = $1)`, [email])
     if(result.exists) {
       return res.status(409).json({
         error: "User with provided email already exists"
