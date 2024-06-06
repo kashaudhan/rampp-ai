@@ -148,13 +148,15 @@ export const updateUser = async (req: Request, res: Response) => {
  * Only admins can create a admin
  */
 export const createAdmin = async (req: Request, res: Response) => {
-  let { admin_id, name, email, tenant_id,  } = req.body
+  let { id } = (req as any).user;
+  let { name, email, tenant_id, password } = req.body;
 
-  admin_id = Number(admin_id);
+
+  id = Number(id);
   tenant_id = Number(tenant_id);
   name = name.trim();
 
-  if(admin_id <= 0 ||tenant_id <= 0 || name.length <= 0 || !validator.emailValidation(email)) {
+  if(id <= 0 ||tenant_id <= 0 || name.length <= 0 || !validator.emailValidation(email) || validator.passwordValidation(password)) {
     return res.status(400).json({
       error: "Invalid value(s) provided"
     }).end();
@@ -167,15 +169,18 @@ export const createAdmin = async (req: Request, res: Response) => {
         error: "User with provided email already exists"
       }).end();
     }
+    const salt = bcrypt.genSaltSync(Number(process.env.ENCRYPTION_SALT));
+    const passwordHash = bcrypt.hashSync(password, salt);
     await models.db.run(
-      `INSERT INTO user (name, user_type, email, tenant_id) VALUES($1, $2, $3, $4)`, 
-      [name, 'ADMIN', email, tenant_id]
+      `INSERT INTO user (name, user_type, email, tenant_id, password_hash) VALUES($1, $2, $3, $4)`, 
+      [name, 'ADMIN', email, tenant_id, passwordHash]
     );
     
     return res.status(201).json({
       message: "Admin created successfully"
     }).end();
   } catch (error) {
+    console.error(error);
     return res.status(500).end();
   }
 }
@@ -185,13 +190,19 @@ export const createAdmin = async (req: Request, res: Response) => {
  * Only admins can create a owner
  */
 export const createOwner = async (req: Request, res: Response) => {
-  let { admin_id, name, email, tenant_id,  } = req.body
+  let { id, name, email, tenant_id, user_type } = req.body.user
 
-  admin_id = Number(admin_id);
+  if(user_type !== type.UserType.ADMIN) {
+    return res.status(401).json({
+      error: "Unauthorized"
+    }).end();
+  }
+
+  id = Number(id);
   tenant_id = Number(tenant_id);
   name = name.trim();
 
-  if(admin_id <= 0 ||tenant_id <= 0 || name.length <= 0 || !validator.emailValidation(email)) {
+  if(id <= 0 ||tenant_id <= 0 || name.length <= 0 || !validator.emailValidation(email)) {
     return res.status(400).json({
       error: "Invalid value(s) provided"
     }).end();

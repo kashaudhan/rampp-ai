@@ -1,5 +1,11 @@
 export type TProductCategory = 'VEGETABLE' | 'FRUIT' | 'DAIRY' | 'OTHERS';
-export type TUserRole = 'ADMIN' | 'USER' | 'OWNER';
+export type TUserRole = 'ADMIN' | 'CUSTOMER' | 'OWNER';
+
+export enum UserType {
+  ADMIN = 'ADMIN',
+  CUSTOMER = 'USER',
+  OWNER = 'OWNER'
+}
 
 export interface IProduct {
   id: number;

@@ -150,3 +150,41 @@ export const searchProduct = async (req: Request, res: Response) => {
   }
 
 }
+
+
+export const mostFreqOrderedProduct = async (req: Request, res: Response) => {
+  try {
+    const result = await models.db.run(`
+      SELECT tenant_id, product_id from product GROUP BY tenant_id
+    `)
+
+    // console.log("Rsu")
+  } catch (error) {
+    
+  }
+}
+
+/**
+ * t1- p1, p2, p2 p1, p2
+ * t2- p1, p2, p2 p1, p2
+ * 
+ * t1- > p1-2 p2-3
+ * 
+ * [{ 1, 2 }, {2, 2}]
+ */
+
+/**
+ * 1 - apple
+ * 2 - orange
+ * 3 - apple + orange
+ * 
+ * All labels are wrong
+ */
+
+/**
+ * Redis -> 
+ * user_id, ip_address
+ * 
+ * ip_address
+ * ip_address -> key
+ */

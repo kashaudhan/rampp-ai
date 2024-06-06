@@ -32,16 +32,32 @@ export const authenticateToken = (
   next: NextFunction
 ) => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-
+  const token = authHeader && authHeader.split(" ")[0];
   if (token == null) {
     return res.status(401).end();
   }
   try {
     const user = verifyToken(token);
+
+    console.log("User: ", user);
     (req as any).user = user;
     next();
   } catch (error) {
     return res.status(403).end();
   }
 };
+
+
+export const checkIfAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const { user_type } = (req as any).user;
+
+  if(user_type !== type.UserType.ADMIN) {
+    return res.status(401).end();
+  }
+
+  next();
+}
+
+// separate table for customer, owner, admin
+
+// 

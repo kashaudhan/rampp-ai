@@ -15,8 +15,6 @@ export const createTenant = async (req: Request, res: Response) => {
       .end();
   }
 
-  console.log("Name: ", name)
-
   try {
     await models.db.run(`INSERT INTO tenant(name) VALUES(?)`, [name]);
 
